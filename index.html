@@ -872,40 +872,8 @@ async function saveApiKey() {
   if (!key) { errEl.textContent = 'Please paste your API key first!'; return; }
   if (!key.startsWith('sk-ant-')) { errEl.textContent = 'That doesn\'t look right — keys start with sk-ant-'; return; }
 
-  // Quick validation test
-  errEl.textContent = '';
-  const btn = document.querySelector('#screen-setup .btn-primary');
-  btn.textContent = 'Checking key… ⏳'; btn.disabled = true;
-
-  try {
-    const res = await fetch('https://sunny-proxy.marshall-lai.workers.dev', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': key,
-        'anthropic-version': '2023-06-01'
-      },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 10,
-        messages: [{ role: 'user', content: 'Hi' }]
-      })
-    });
-    const data = await res.json();
-    if (data.error) {
-      errEl.textContent = 'Key didn\'t work: ' + (data.error.message || 'Unknown error');
-      btn.textContent = 'Let\'s go! ☀️'; btn.disabled = false;
-      return;
-    }
-    saveApiKeyToStorage(key);
-    btn.textContent = 'Let\'s go! ☀️'; btn.disabled = false;
-    const fromSettings = document.getElementById('screen-setup').dataset.fromSettings === '1';
-    if (fromSettings) { showProfiles(); }
-    else { showProfiles(); }
-  } catch(e) {
-    errEl.textContent = 'Could not connect. Check your internet and try again.';
-    btn.textContent = 'Let\'s go! ☀️'; btn.disabled = false;
-  }
+  saveApiKeyToStorage(key);
+  showProfiles();
 }
 
 
