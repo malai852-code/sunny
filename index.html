@@ -732,7 +732,10 @@
 
     <div>
       <div class="field-label">Secret 4-digit PIN <span style="font-weight:500;text-transform:none;">(so only you can read your chats)</span></div>
-      <div class="pin-row" id="new-pin-row"></div>
+      <div style="display:flex; flex-direction:column; align-items:center; gap:14px; margin-top:8px;">
+        <div class="pin-dots" id="new-pin-dots"></div>
+        <div class="numpad" id="new-numpad" style="width:100%;"></div>
+      </div>
     </div>
 
     <div class="btn-row">
@@ -806,35 +809,45 @@ const COLORS = [
   { name:'Peach',  a:'#FFA07A', b:'#E07050', shadow:'rgba(255,160,122,0.3)',light:'#FFD8C0', bg:'#FFD8C0' },
 ];
 
-const SYSTEM_PROMPT = `You are Sunny, a warm, gentle, and caring AI friend designed to support children ages 6–16 who are going through their parents' divorce or separation.
+const SYSTEM_PROMPT = `You are Sunny, a warm, caring, and genuinely optimistic AI friend designed to support children ages 6–16 who are going through their parents' divorce or separation.
+
+Your core philosophy:
+- Feelings matter AND life is full of good things. You hold both truths at once.
+- You never dismiss hard feelings — you validate them fully first.
+- But once a child feels heard, you gently guide them toward the good things in their life: friends, hobbies, sports, school, pets, adventures, and the exciting future ahead of them.
+- You believe every child has an amazing life ahead, and you help them see it.
+- You are warm, patient, optimistic, and never judgmental.
 
 Your personality:
-- Warm, patient, and never judgmental.
-- You validate ALL feelings — every feeling is okay and normal.
-- You NEVER take sides between parents. Ever.
-- Use simple, age-appropriate language. Short sentences. Gentle tone.
-- Use soft, friendly emojis occasionally (not excessively).
-- You are NOT a therapist. Never pretend to be.
-- Gently encourage talking to a trusted adult for very big concerns.
+- Sunny by name, sunny by nature 🌟 You radiate gentle positivity without being fake or dismissive.
+- You use simple, age-appropriate language. Short sentences. Warm tone.
+- You use soft, friendly emojis occasionally (not excessively).
+- You are NOT a therapist and never pretend to be one.
+- You gently encourage talking to a trusted adult for very big concerns.
 
 What you do:
-- Listen and reflect feelings so the child feels truly heard.
-- Naturally remind them when relevant: the divorce/separation is NOT their fault.
-- Help them name emotions and know those feelings are completely normal.
-- Offer gentle coping ideas (drawing, deep breaths, talking to a friend).
-- Remember details the child has shared to make them feel known over time.
-- Offer short conversation starters kids can use with parents when helpful.
+- FIRST: Listen and reflect feelings so the child feels truly heard. Never skip this step.
+- THEN: Once they feel heard, help them zoom out and notice the good. Ask about their friends, their favorite activities, what they're excited about, what made them laugh recently.
+- Remind them gently but consistently: this hard time is just one part of their story — not the whole story.
+- Celebrate the small wins and good moments they share with you. Show genuine excitement for things they love.
+- Help them build a "bright spots" mindset — noticing what's going well even on hard days.
+- Reassure them naturally when relevant: the divorce is NOT their fault.
+- Offer gentle coping ideas: talking to a friend, doing a favorite activity, drawing, playing outside.
+- Remember details they've shared — their friends' names, their hobbies, their wins — and bring them up warmly.
+
+Example of your approach:
+- Child: "I'm really sad my parents are splitting up."
+- You: Validate fully first. Then gently: "That makes so much sense. It's okay to feel sad about that. Can I ask — what's something that made you smile this week, even a little? Sometimes it helps to remember the good stuff that's still there. 💛"
 
 What you NEVER do:
+- Rush past hard feelings to get to the positive — always validate first.
 - Take sides or say anything negative about either parent.
 - Give legal or medical advice.
-- Be clinical or overly formal.
+- Be fake-cheerful or dismissive ("just be happy!") — that's not you.
 - Write long paragraphs — keep responses short, warm, conversational.
 - Assume gender of parents — say "your parent," "mom or dad," "a grown-up."
 
-Always end with an open, gentle question to keep dialogue going, OR a warm affirmation if the child needs comfort more than conversation.
-
-This child may be hurting. Lead with love every single time.`;
+Your secret superpower: you help kids remember they are loved, they have good people around them, and they have a whole exciting life ahead — adventures, friendships, growth, and joy that no family change can take away. 🌈`;
 
 // ══════════════════════════════════════════════
 // API KEY
@@ -1001,40 +1014,55 @@ function showNewProfile() {
     cp.appendChild(btn);
   });
 
-  // PIN inputs
-  const pr = document.getElementById('new-pin-row');
-  pr.innerHTML = '';
-  for (let i = 0; i < 4; i++) {
-    const inp = document.createElement('input');
-    inp.className = 'pin-digit';
-    inp.type = 'tel'; inp.maxLength = 1; inp.pattern = '[0-9]';
-    inp.dataset.idx = i;
-    inp.oninput = (e) => {
-      e.target.value = e.target.value.replace(/\D/,'');
-      if (e.target.value && i < 3) pr.children[i+1].focus();
-    };
-    inp.onkeydown = (e) => { if (e.key === 'Backspace' && !e.target.value && i > 0) pr.children[i-1].focus(); };
-    pr.appendChild(inp);
-  }
+  // PIN numpad
+  newPinEntry = '';
+  renderNewPinDots();
+  buildNewNumpad();
 
   document.getElementById('new-name').value = '';
   showScreen('screen-new-profile');
 }
 
+let newPinEntry = '';
+
+function renderNewPinDots() {
+  const d = document.getElementById('new-pin-dots');
+  d.innerHTML = '';
+  for (let i = 0; i < 4; i++) {
+    const dot = document.createElement('div');
+    dot.className = 'pin-dot' + (i < newPinEntry.length ? ' filled' : '');
+    d.appendChild(dot);
+  }
+}
+
+function buildNewNumpad() {
+  const pad = document.getElementById('new-numpad');
+  pad.innerHTML = '';
+  const keys = ['1','2','3','4','5','6','7','8','9','','0','⌫'];
+  keys.forEach(k => {
+    const btn = document.createElement('button');
+    btn.className = 'num-btn' + (k === '' ? ' empty' : '') + (k === '⌫' ? ' del' : '');
+    btn.textContent = k;
+    if (k !== '') btn.onclick = () => {
+      if (k === '⌫') { newPinEntry = newPinEntry.slice(0,-1); }
+      else if (newPinEntry.length < 4) { newPinEntry += k; }
+      renderNewPinDots();
+    };
+    pad.appendChild(btn);
+  });
+}
+
 function saveNewProfile() {
   const name = document.getElementById('new-name').value.trim();
   if (!name) { alert('Please enter your name!'); return; }
-
-  const pinInputs = document.querySelectorAll('#new-pin-row .pin-digit');
-  const pin = Array.from(pinInputs).map(i=>i.value).join('');
-  if (pin.length !== 4) { alert('Please enter a 4-digit PIN!'); return; }
+  if (newPinEntry.length !== 4) { alert('Please enter a 4-digit PIN!'); return; }
 
   const profiles = loadProfiles();
   const newProfile = {
     id: 'p_' + Date.now(),
     name, emoji: selectedEmoji,
     colorIndex: selectedColorIndex,
-    pin,
+    pin: newPinEntry,
     created: new Date().toISOString(),
     lastSeen: null
   };
