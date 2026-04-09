@@ -651,52 +651,6 @@
 <div class="scene"></div>
 <div class="stars" id="stars"></div>
 
-<!-- ══ SCREEN: SETUP (API KEY) ══ -->
-<div class="screen hidden" id="screen-setup">
-  <div class="setup-card">
-    <div class="setup-top">
-      <div class="setup-icon">🔑</div>
-      <div class="setup-title">One-time setup</div>
-      <div class="setup-sub">Sunny needs an Anthropic API key to power her AI brain. You only enter this once — it stays privately on this device.</div>
-    </div>
-
-    <div class="setup-steps">
-      <div class="setup-step">
-        <div class="step-num">1</div>
-        <div class="step-text">Go to <a href="https://console.anthropic.com" target="_blank">console.anthropic.com</a> and sign in (or create a free account)</div>
-      </div>
-      <div class="setup-step">
-        <div class="step-num">2</div>
-        <div class="step-text">Click <strong>"API Keys"</strong> in the left menu, then <strong>"Create Key"</strong></div>
-      </div>
-      <div class="setup-step">
-        <div class="step-num">3</div>
-        <div class="step-text">Copy the key (starts with <strong>sk-ant-</strong>) and paste it below</div>
-      </div>
-    </div>
-
-    <div>
-      <div class="field-label">Your API key</div>
-      <div class="key-input-wrap">
-        <input class="key-input" id="api-key-input" type="password"
-          placeholder="sk-ant-api03-…"
-          oninput="document.getElementById('setup-error').textContent=''" />
-        <button class="key-toggle" onclick="toggleKeyVisibility()" id="key-toggle-btn" title="Show/hide key">👁</button>
-      </div>
-    </div>
-
-    <div class="key-note">
-      🔒 Your key is saved only in this browser on this device. It's never sent anywhere except directly to Anthropic to power Sunny's responses.
-    </div>
-
-    <div class="setup-error" id="setup-error"></div>
-
-    <button class="btn btn-primary" onclick="saveApiKey()" style="width:100%;padding:15px;font-size:1.05rem;">
-      Let's go! ☀️
-    </button>
-  </div>
-</div>
-
 <!-- ══ SCREEN: PROFILES ══ -->
 <div class="screen" id="screen-profiles">
   <div style="display:flex; flex-direction:column; align-items:center; gap:28px; width:100%; max-width:560px; padding:20px;">
@@ -707,7 +661,6 @@
     </div>
     <div class="profiles-grid" id="profiles-grid"></div>
   </div>
-  <button class="settings-btn" onclick="showSetup(true)" title="API Key Settings">⚙️</button>
 </div>
 
 <!-- ══ SCREEN: NEW PROFILE ══ -->
@@ -845,44 +798,6 @@ Your secret sauce: you make them feel like they have a cool older friend in thei
 // ══════════════════════════════════════════════
 // API KEY
 // ══════════════════════════════════════════════
-function getApiKey() {
-  return localStorage.getItem('sunny_api_key') || '';
-}
-function saveApiKeyToStorage(key) {
-  localStorage.setItem('sunny_api_key', key);
-}
-
-function showSetup(fromSettings = false) {
-  const existing = getApiKey();
-  const inp = document.getElementById('api-key-input');
-  inp.value = existing ? existing : '';
-  inp.type = 'password';
-  document.getElementById('key-toggle-btn').textContent = '👁';
-  document.getElementById('setup-error').textContent = '';
-  // Store where to go back if coming from settings
-  document.getElementById('screen-setup').dataset.fromSettings = fromSettings ? '1' : '0';
-  showScreen('screen-setup');
-}
-
-function toggleKeyVisibility() {
-  const inp = document.getElementById('api-key-input');
-  const btn = document.getElementById('key-toggle-btn');
-  if (inp.type === 'password') { inp.type = 'text'; btn.textContent = '🙈'; }
-  else { inp.type = 'password'; btn.textContent = '👁'; }
-}
-
-async function saveApiKey() {
-  const key = document.getElementById('api-key-input').value.trim();
-  const errEl = document.getElementById('setup-error');
-
-  if (!key) { errEl.textContent = 'Please paste your API key first!'; return; }
-  if (!key.startsWith('sk-ant-')) { errEl.textContent = 'That doesn\'t look right — keys start with sk-ant-'; return; }
-
-  saveApiKeyToStorage(key);
-  showProfiles();
-}
-
-
 function loadProfiles() {
   try { return JSON.parse(localStorage.getItem('sunny_profiles') || '[]'); }
   catch { return []; }
@@ -1260,30 +1175,23 @@ async function callClaude(userMessage) {
     .filter(m => m.role === 'user' || m.role === 'assistant')
     .map(m => ({ role: m.role, content: m.content }));
 
-  const apiKey = getApiKey();
-  if (!apiKey) throw new Error('No API key found — please tap ⚙️ and enter your key.');
-
   const response = await fetch('https://sunny-proxy.marshall-lai.workers.dev', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'x-api-key': apiKey,
       'anthropic-version': '2023-06-01'
     },
     body: JSON.stringify({
       model: 'claude-sonnet-4-20250514',
       max_tokens: 1000,
-      system: SYSTEM_PROMPT + `\n\nYou are talking with ${currentProfile.name}. Remember their name and use it naturally but not every message.`,
+      system: SYSTEM_PROMPT + `\n\nYou are talking with ${currentProfile.name}. Remember their name and use it occasionally and naturally, not every message.`,
       messages: msgs
     })
   });
 
   const data = await response.json();
-
-  // Surface API errors visibly
-  if (data.error) throw new Error('Anthropic error: ' + data.error.message);
-
-  return data.content?.find(b => b.type === 'text')?.text || 'I\'m here for you 💛';
+  if (data.error) throw new Error('Error: ' + data.error.message);
+  return data.content?.find(b => b.type === 'text')?.text || 'Hey, I\'m here 💛';
 }
 
 async function sendText(text) {
@@ -1351,11 +1259,7 @@ function goBack() {
 // INIT
 // ══════════════════════════════════════════════
 initStars();
-if (!getApiKey()) {
-  showSetup(false);
-} else {
-  showProfiles();
-}
+showProfiles();
 </script>
 </body>
 </html>
